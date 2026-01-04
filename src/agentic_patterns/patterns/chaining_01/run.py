@@ -33,7 +33,7 @@ def run(
     2. Transform specifications into JSON format
     
     Args:
-        model_name: Model to use (e.g., 'gpt-4', 'claude-sonnet-4')
+        model_name: Model to use (e.g., 'gpt-4', 'claude-sonnet-4-5-20250929')
         input_text: Text to extract specifications from
         config: Pattern configuration (uses defaults if None)
         verbose: Whether to print intermediate results
@@ -126,7 +126,7 @@ def compare_models(
         Dictionary mapping model names to their results
     """
     if models is None:
-        models = ["gpt-4", "gpt-3.5-turbo", "claude-sonnet-4"]
+        models = ["gpt-4", "gpt-3.5-turbo", "claude-sonnet-4-5-20250929"]
     
     config = config or ChainingConfig()
     

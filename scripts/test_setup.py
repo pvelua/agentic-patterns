@@ -61,7 +61,7 @@ def test_model_factory():
             test_models.append(("gpt-4", "OpenAI"))
 
         if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY != "your_anthropic_api_key_here":
-            test_models.append(("claude-sonnet-4", "Anthropic"))
+            test_models.append(("claude-sonnet-4-5-20250929", "Anthropic"))
 
         if settings.GOOGLE_API_KEY and settings.GOOGLE_API_KEY != "your_gemini_api_key_here":
             test_models.append(("gemini-pro", "Google"))

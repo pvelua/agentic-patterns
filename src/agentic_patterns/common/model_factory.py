@@ -10,9 +10,9 @@ class ModelFactory:
     def create(model_name: str, **kwargs):
         """
         Create a LangChain model instance
-        
+
         Args:
-            model_name: Model identifier (e.g., 'gpt-4', 'claude-sonnet-4')
+            model_name: Model identifier (e.g., 'gpt-4', 'claude-sonnet-4-5-20250929')
             **kwargs: Additional model parameters
         """
         defaults = {

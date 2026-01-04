@@ -24,9 +24,9 @@ cp .env.example .env
 uv run src/agentic_patterns/patterns/chaining_01/run.py
 
 # Run with a specific model
-uv run src/agentic_patterns/patterns/chaining_01/run.py claude-sonnet-4
-uv run src/agentic_patterns/patterns/chaining_01/run.py gpt-3.5-turbo
-uv run src/agentic_patterns/patterns/chaining_01/run.py gemini-pro
+uv run src/agentic_patterns/patterns/chaining_01/run.py claude-sonnet-4-5-20250929
+uv run src/agentic_patterns/patterns/chaining_01/run.py gpt-4o
+uv run src/agentic_patterns/patterns/chaining_01/run.py gemini-2.5-flash
 ```
 
 ### Code Quality
@@ -128,10 +128,12 @@ When adding support for new models:
 - Google models must start with 'gemini' prefix
 - ModelFactory uses string.startswith() to route to correct provider
 
-Supported models:
-- OpenAI: gpt-4, gpt-4-turbo, gpt-3.5-turbo
-- Anthropic: claude-sonnet-4, claude-opus-4, claude-haiku-4
-- Google: gemini-pro, gemini-1.5-pro
+Supported models (as of 2025):
+- **OpenAI**: gpt-4.1-2025-04-14, gpt-4.1-mini-2025-04-14, gpt-4o, gpt-4o-mini, gpt-4-turbo
+- **Anthropic**: claude-sonnet-4-5-20250929, claude-opus-4-5-20251101, claude-3-5-haiku-20241022
+- **Google**: gemini-3-pro-preview, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite
+
+Note: Deprecated models include gpt-3.5-turbo (OpenAI), gemini-pro, and gemini-1.5-pro (Google, retired April 2025)
 
 ## Adding New Patterns
 
