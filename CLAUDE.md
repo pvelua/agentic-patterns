@@ -81,14 +81,50 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
    - Should include model parameters (temperature, max_tokens)
    - Should include pattern-specific prompts/settings
    - Must have get_model_kwargs() method returning dict for ModelFactory
+   - For patterns with multiple roles (e.g., reflection), may include separate model configurations
 
 2. **run.py**: Main implementation with two key functions
-   - run(): Execute pattern with single model, returns result
+   - run(): Execute pattern with single model (or multiple models for multi-role patterns), returns result
    - compare_models(): Run pattern across multiple models for comparison
    - Both functions should use OutputWriter for logging
    - Main block should accept model name as CLI argument
 
 3. **__init__.py**: Export public API (run, compare_models functions)
+
+### Pattern-Specific Variations
+
+**Reflection Pattern (reflection_04)**: Supports dual-model approach with separate creator and critic roles
+
+- **Configuration**: Includes separate settings for creator and critic models
+  ```python
+  default_creator_model: str = "gpt-4"
+  default_critic_model: str = "claude-sonnet-4-5-20250929"
+  creator_temperature: float = 0.1  # Deterministic code generation
+  critic_temperature: float = 0.3   # More diverse critique
+  ```
+- **Methods**: `get_creator_kwargs()` and `get_critic_kwargs()` for separate model configurations
+- **Function Signature**: `run(creator_model=None, critic_model=None, task_prompt=None, config=None, verbose=True)`
+- **Two LLM Instances**: Creates separate `creator_llm` and `critic_llm` instances
+- **Usage Examples**:
+  ```bash
+  # Use defaults (gpt-4 creator, claude-sonnet-4-5-20250929 critic)
+  uv run src/agentic_patterns/patterns/reflection_04/run.py
+
+  # Specify both models
+  uv run src/agentic_patterns/patterns/reflection_04/run.py gpt-4.1-2025-04-14 claude-sonnet-4-5-20251101
+
+  # Programmatic usage
+  uv run python -c "from agentic_patterns.patterns.reflection_04 import run; run('gpt-4o', 'claude-sonnet-4-5-20250929', 'Your task')"
+  ```
+- **Compare Models**: Accepts list of (creator, critic) tuples
+  ```python
+  compare_models(model_pairs=[
+      ("gpt-4", "claude-sonnet-4-5-20250929"),
+      ("gpt-4o", "claude-sonnet-4-5-20250929"),
+      ("claude-sonnet-4-5-20250929", "gpt-4o"),
+  ])
+  ```
+- **Benefits**: Leverages different model strengths (e.g., GPT for generation, Claude for critical analysis)
 
 ### LangChain Patterns
 
@@ -147,3 +183,9 @@ When implementing a new pattern:
 6. Follow LCEL composition style for chains
 7. Include CLI support in `if __name__ == "__main__"` block
 8. Pattern config should be a dataclass with get_model_kwargs() method
+9. For patterns with multiple roles (e.g., creator/critic), consider:
+   - Separate model configuration for each role (default_creator_model, default_critic_model)
+   - Separate temperature/parameter settings per role
+   - Multiple get_*_kwargs() methods (get_creator_kwargs(), get_critic_kwargs())
+   - Function signatures accepting multiple model parameters
+   - Enhanced logging showing which model is used for which role
