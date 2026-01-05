@@ -102,6 +102,92 @@ The Tool Use pattern, often implemented through a mechanism called Function Call
 - [LangChain Documentation (Tools)](https://​python.​langchain.​com/​docs/​integrations/​tools/​)
 - [OpenAI Function Calling Documentation](https://​platform.​openai.​com/​docs/​guides/​function-calling)
 
+---
+
+## Pattern 46 - Planning
+
+At its core, planning is the ability for an agent or a system of agents to formulate a sequence of actions to move from an initial state towards a goal state. A hallmark of this process is adaptability. An initial plan is merely a starting point, not a rigid script. The agent’s real power is its ability to incorporate new information and steer the project around obstacles.
+
+Implementation Summary
+
+  Files Created
+
+  1. config.py - Configuration with dual-model approach:
+    - Separate settings for planner and executor roles
+    - planner_temperature: 0.3 (creative planning)
+    - executor_temperature: 0.2 (focused execution)
+    - Detailed system prompts for both roles
+    - Maximum/minimum plan step constraints
+  2. run.py - Main implementation featuring:
+    - LangGraph StateGraph for workflow management
+    - Two-phase workflow:
+        - Planning Node: Analyzes task and generates detailed plan
+      - Execution Node: Executes plan step-by-step
+    - State tracking throughout the workflow
+    - Rich verbose logging showing both phases
+    - Support for run() and compare_models() functions
+  3. init.py - Public API exports
+
+  Key Features
+
+  LangGraph Integration
+  - Uses StateGraph for proper state management
+  - Defines workflow nodes for planning and execution
+  - Sequential execution: planner → executor → END
+  - Maintains message history throughout workflow
+
+  Two-Phase Approach
+  - Phase 1 (Planning): Strategic planning with step-by-step breakdown
+  - Phase 2 (Execution): Thorough execution following the plan
+  - Each phase has dedicated LLM instance with optimized parameters
+
+  Versatile Task Support
+  - Software development (API design, architecture)
+  - Data analysis (pipelines, ML models)
+  - Technical writing (tutorials, guides)
+  - Problem-solving (optimization, algorithms)
+  - Creative writing (stories, narratives)
+
+  Test Results
+
+  ✅ Successfully tested with multiple scenarios:
+  1. Software Development (gpt-4o): RESTful API implementation guide
+    - Generated 10-step comprehensive plan
+    - Produced detailed execution covering all aspects
+  2. Creative Writing (gpt-4o-mini): Time traveler short story
+    - Created structured 10-step writing plan
+    - Executed complete story following the plan
+  3. Study Planning (claude-sonnet-4-5-20250929): ML learning path
+    - Plan: 5,346 characters
+    - Execution: 10,765 characters
+
+  Usage Examples
+
+  # Run with default task (RESTful API guide)
+  uv run src/agentic_patterns/patterns/planning_06/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/planning_06/run.py claude-sonnet-4-5-20250929
+
+  # Programmatic usage
+  uv run python -c "
+  from agentic_patterns.patterns.planning_06 import run
+  task = 'Design a microservices architecture for an e-commerce platform'
+  run('gpt-4o', task)
+  "
+
+  Pattern Advantages
+
+  1. Strategic Decomposition: Complex tasks broken into manageable steps
+  2. Quality Control: Plan reviewed before execution begins
+  3. Systematic Execution: Each step builds on previous results
+  4. Transparency: Clear visibility into planning and execution phases
+  5. State Management: LangGraph ensures proper workflow orchestration
+  6. Flexibility: Works across diverse task types and models
+
+  The implementation goes beyond the Crew AI example by using LangGraph for proper state management, supporting richer task types, and providing detailed progress tracking through both planning and execution phases!
+
+
 
 
  
