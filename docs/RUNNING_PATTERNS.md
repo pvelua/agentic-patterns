@@ -27,7 +27,7 @@ Here's how to run parallelization_03 with a custom topic and the gpt-4.1-2025-04
 ```
   The pattern will run the three parallel chains (summarize, questions, key terms) on your custom topic and synthesize the results.
 
-  ## Pattern 4 - Reflection
+## Pattern 4 - Reflection
 
 Running the Pattern:
 - Basic usage with defaults:
@@ -52,3 +52,18 @@ uv run python -c "from agentic_patterns.patterns.reflection_04 import run; run('
       ("claude-sonnet-4-5-20250929", "gpt-4o"),
   ])
 ```
+
+## Pattern 5 - Tool Use (Function Calling)
+
+Usage Examples
+```bash
+  # Run with default model (gpt-4o) and example queries
+  uv run src/agentic_patterns/patterns/tool_use_05/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/tool_use_05/run.py claude-sonnet-4-5-20250929
+
+  # Programmatic usage
+  uv run python -c "from agentic_patterns.patterns.tool_use_05 import run; run('gpt-4o', ['What is quantum computing?'])"
+```
+  The implementation demonstrates sophisticated function calling where the LLM not only selects the right tool but also formulates comprehensive answers by synthesizing the tool results with its own knowledge!
