@@ -947,3 +947,259 @@ print("\n\n---\n## Task Result ##\n---")
 print(result)
  
 ```
+
+# Pattern 7 - Multi-Agent Collaboration
+
+The Multi-Agent Collaboration pattern offers a standardized solution by creating a system of multiple, cooperating agents. A complex problem is broken down into smaller, more manageable sub-problems. Each sub-problem is then assigned to a specialized agent with the precise tools and capabilities required to solve it. These agents work together through defined communication protocols and interaction models like sequential handoffs, parallel workstreams, or hierarchical delegation. This agentic, distributed approach creates a synergistic effect, allowing the group to achieve outcomes that would be impossible for any single agent.
+
+- Multi-Agent collaboration involves multiple agents working together to achieve a common goal. 
+- This pattern leverages specialized roles, distributed tasks, and inter-agent communication. 
+- Collaboration can take forms like sequential handoffs, parallel processing, debate, or hierarchical structures.
+- This pattern is ideal for complex problems requiring diverse expertise or multiple distinct stages.
+
+## Sample Use Case
+
+1. Research Paper Analysis (Sequential Pipeline)
+2. Product Launch Campaign (Parallel + Synthesis)
+3. Code Review with Inter-Agent Communication
+
+### Code Review: 3-Round Collaborative Workflow:
+
+  **Round 1 - Independent Reviews (Parallel)**
+  - Security, Performance, Quality experts analyze code independently
+  - Each produces their initial review without seeing others' work
+  - This is similar to parallelization
+
+  **Round 2 - Cross-Review & Refinement (TRUE COLLABORATION)**
+  - Each reviewer sees their colleagues' findings
+  - They identify:
+    - ✅ Synergies (e.g., "Security's parameterized queries also improve performance!")
+    - ⚠️ Conflicts (e.g., "Performance's batching conflicts with security's input validation")
+    - 🔄 Trade-offs (e.g., "Quality's refactoring affects both security and performance")
+  - Each reviewer updates their own review based on peer insights
+  - This is the key differentiator - agents communicate and refine!
+
+  **Round 3 - Final Synthesis**
+  - Synthesizer creates unified recommendations from refined, integrated reviews
+  - Final output reflects the collaborative refinement process
+
+  Key Differences:
+
+  | Pattern            | Communication           | Refinement           | Output Quality       |
+  |--------------------|-------------------------|----------------------|----------------------|
+  | Chaining           | Sequential handoff only | No peer review       | Linear improvement   |
+  | Parallelization    | No communication        | No refinement        | Independent views    |
+  | Multi-Agent Collab | Inter-agent dialogue    | Iterative refinement | Synergistic insights |
+
+### Running the Examples:
+```bash
+  # Run specific example
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py gpt-4o 1  # Research analysis
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py gpt-4o 2  # Product launch
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py gpt-4o 3  # Code review
+
+  # Run all examples
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py gpt-4o all
+```
+You can also run the code review (Example 3) with your own custom code snippet. Here are a few ways to do it:
+
+  Option 1: Quick Python Script
+
+  - Create a file (e.g., review_my_code.py):
+```python
+  from agentic_patterns.patterns.multi_agent_collab_07 import run_code_review
+
+  my_code = """
+  def calculate_discount(price, user_type):
+      if user_type == "premium":
+          return price * 0.8
+      elif user_type == "regular":
+          return price * 0.9
+      else:
+          return price
+  """
+
+  result = run_code_review(
+      model_name="gpt-4o-mini",  # or "gpt-4o", "claude-sonnet-4-5-20250929"
+      code_snippet=my_code,
+      verbose=True
+  )
+```
+ - Then run:
+```bash
+  uv run review_my_code.py
+```
+  Option 2: Interactive Python Session
+```bash
+  uv run python
+```
+ - Then:
+```python
+  from agentic_patterns.patterns.multi_agent_collab_07 import run_code_review
+
+  my_code = """
+  # Paste your code here
+  """
+
+  run_code_review(code_snippet=my_code)
+```
+  Option 3: Modify run.py Directly
+
+  Edit src/agentic_patterns/patterns/multi_agent_collab_07/run.py around line 570 where code_snippet is set, and replace the default example with your code.
+
+---
+
+# Pattern 8 - Memory Management
+
+## Code Samples (LangChain/Graph)
+
+LangChain provides several tools for managing conversation history, ranging from manual control to automated integration within chains. 
+
+- **ChatMessageHistory: Manual Memory Management.** For direct and simple control over a conversation’s history outside of a formal chain, the ChatMessageHistory class is ideal. It allows for the manual tracking of dialogue exchanges.
+```python
+from langchain.memory import ChatMessageHistory
+# Initialize the history object 
+history = ChatMessageHistory()
+# Add user and AI messages 
+history.add_user_message("I'm heading to New York next week.")
+history.add_ai_message("Great! It's a fantastic city.")
+# Access the list of messages 
+print(history.messages)
+```
+
+- **ConversationBufferMemory: Automated Memory for Chains.** For integrating memory directly into chains, ConversationBufferMemory is a common choice. It holds a buffer of the conversation and makes it available to your prompt.Its behavior can be customized with two key parameters: 
+- memory_key: A string that specifies the variable name in your prompt that will hold the chat history. It defaults to “history”. 
+- return_messages: A boolean that dictates the format of the history. 
+    ​– ​If False (the default), it returns a single formatted string, which is ideal for standard LLMs. 
+    ​– ​If True, it returns a list of message objects, which is the recommended format for Chat Models.
+
+```python
+from langchain.memory import ConversationBufferMemory
+# Initialize memory 
+memory = ConversationBufferMemory()
+# Save a conversation turn 
+memory.save_context({"input": "What's the weather like?"}, {"output": "It's sunny today."})
+# Load the memory as a string 
+print(memory.load_memory_variables({}))
+```
+Integrating this memory into an LLMChain allows the model to the conversation's history:
+```python
+from langchain_openai import OpenAI 
+from langchain.chains import LLMChain 
+from langchain.prompts import PromptTemplate 
+from langchain.memory import ConversationBufferMemory 
+
+# 1. Define LLM and Prompt 
+llm = OpenAI(temperature=0)
+template = """You are a helpful travel agent. 
+
+Previous conversation: {history} 
+
+New question: {question} 
+
+Response:""" 
+prompt = PromptTemplate.from_template(template) 
+
+# 2. Configure Memory 
+# The memory_key "history" matches the variable in the prompt 
+memory = ConversationBufferMemory(memory_key="history") 
+
+# 3. Build the Chain 
+conversation = LLMChain(llm=llm, prompt=prompt, memory=memory) 
+
+# 4. Run the Conversation 
+response = conversation.predict(question="I want to book a flight.") 
+print(response) 
+response = conversation.predict(question="My name is Sam, by the way.") 
+print(response) 
+response = conversation.predict(question="What was my name again?") 
+print(response) 
+```
+
+For improved effectiveness with chat models, it is recommended to use a structured list of message objects by setting ‘return_messages = True’.
+```python
+from langchain.chains import LLMChain 
+from langchain.memory import ConversationBufferMemory 
+from langchain_core.prompts import (    
+    ChatPromptTemplate,    
+    MessagesPlaceholder,    
+    SystemMessagePromptTemplate,    
+    HumanMessagePromptTemplate, 
+) 
+
+# 1. Define Chat Model and Prompt 
+llm = ChatOpenAI() 
+prompt = ChatPromptTemplate(
+    messages=[
+        SystemMessagePromptTemplate.from_template("You are a friendly assistant."),        
+        MessagesPlaceholder(variable_name="chat_history"),        
+        HumanMessagePromptTemplate.from_template("{question}")    
+    ] 
+) 
+
+# 2. Configure Memory 
+# return_messages=True is essential for chat models 
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True) 
+
+# 3. Build the Chain 
+conversation = LLMChain(llm=llm, prompt=prompt, memory=memory) 
+
+# 4. Run the Conversation 
+response = conversation.predict(question="Hi, I'm Jane.") 
+print(response) 
+response = conversation.predict(question="Do you remember my name?") 
+print(response)
+
+```
+Types of Long-Term Memory:
+- **Semantic Memory: Remembering Facts:** This involves retaining specific facts and concepts, such as user preferences or domain knowledge.
+- **Episodic Memory: Remembering Experiences:** This involves recalling past events or actions.
+- **Procedural Memory: Remembering Rules:** This is the memory of how to perform tasks—the agent’s core instructions and behaviors, often contained in its system prompt.
+
+LangGraph stores long-term memories as JSON documents in a store. Each memory is organized under a custom namespace (like a folder) and a distinct key (like a filename).
+```python
+from langgraph.store.memory import InMemoryStore 
+
+# A placeholder for a real embedding function 
+def embed(texts: list[str]) -> list[list[float]]:    
+    # In a real application, use a proper embedding model    
+    return [[1.0, 2.0] for _ in texts] 
+
+# Initialize an in-memory store. For production, use a database-backed store. 
+store = InMemoryStore(index={"embed": embed, "dims": 2}) 
+
+# Define a namespace for a specific user and application context 
+user_id = "my-user" 
+application_context = "chitchat" 
+namespace = (user_id, application_context)
+
+# 1. Put a memory into the store 
+store.put(
+    namespace,
+    "a-memory",  # The key for this memory    
+    {
+        "rules": [
+            "User likes short, direct language",
+            "User only speaks English & python",
+        ],
+        "my-key": "my-value",    
+    }, 
+) 
+
+# 2. Get the memory by its namespace and key 
+item = store.get(namespace, "a-memory") 
+print("Retrieved Item:", item) 
+
+# 3. Search for memories within the namespace, filtering by content 
+# and sorting by vector similarity to the query. 
+items = store.search(    
+    namespace,
+    filter={"my-key": "my-value"},
+    query="language preferences" 
+)
+print("Search Results:", items)
+
+```
+
+
+

@@ -104,7 +104,7 @@ The Tool Use pattern, often implemented through a mechanism called Function Call
 
 ---
 
-## Pattern 46 - Planning
+## Pattern 6 - Planning
 
 At its core, planning is the ability for an agent or a system of agents to formulate a sequence of actions to move from an initial state towards a goal state. A hallmark of this process is adaptability. An initial plan is merely a starting point, not a rigid script. The agent’s real power is its ability to incorporate new information and steer the project around obstacles.
 
@@ -161,23 +161,7 @@ Implementation Summary
     - Plan: 5,346 characters
     - Execution: 10,765 characters
 
-  Usage Examples
-
-  # Run with default task (RESTful API guide)
-  uv run src/agentic_patterns/patterns/planning_06/run.py
-
-  # Run with specific model
-  uv run src/agentic_patterns/patterns/planning_06/run.py claude-sonnet-4-5-20250929
-
-  # Programmatic usage
-  uv run python -c "
-  from agentic_patterns.patterns.planning_06 import run
-  task = 'Design a microservices architecture for an e-commerce platform'
-  run('gpt-4o', task)
-  "
-
   Pattern Advantages
-
   1. Strategic Decomposition: Complex tasks broken into manageable steps
   2. Quality Control: Plan reviewed before execution begins
   3. Systematic Execution: Each step builds on previous results
@@ -187,6 +171,270 @@ Implementation Summary
 
   The implementation goes beyond the Crew AI example by using LangGraph for proper state management, supporting richer task types, and providing detailed progress tracking through both planning and execution phases!
 
+## Pattern 7 - Multi-Agent Collaboration (Intra-Application)
+
+---
+
+## Pattern 8 - Memory Management
+
+In agent systems, memory refers to an agent’s ability to retain and utilize information from past interactions, observations, and learning experiences. Agent memory is generally categorized into two main types:
+- **Short-Term Memory (Contextual Memory):** Similar to working memory, this holds information currently being processed or recently accessed. For agents using large language models (LLMs), short-term memory primarily exists within the context window. This window contains recent messages, agent replies, tool usage results, and agent reflections from the current interaction, all of which inform the LLM’s subsequent responses and actions. The context window has a limited capacity, restricting the amount of recent information an agent can directly access.
+- **Long-Term Memory (Persistent Memory):** This acts as a repository for information agents need to retain across various interactions, tasks, or extended periods, akin to long-term knowledge bases. Data is typically stored outside the agent’s immediate processing environment, often in databases, knowledge graphs, or vector databases.
+
+Use cases:
+- **Chatbots and Conversational AI:** Maintaining conversation flow relies on short-term memory. Chatbots require remembering prior user inputs to provide coherent responses.
+- **Task-Oriented Agents:** Agents managing multi-step tasks need short-term memory to track previous steps, current progress, and overall goals. This information might reside in the task’s context or temporary storage. 
+- **Personalized Experiences:** Agents offering tailored interactions utilize long-term memory to store and retrieve user preferences, past behaviors, and personal information.
+- **Learning and Improvement:** Agents can refine their performance by learning from past interactions. Successful strategies, mistakes, and new information are stored in long-term memory, facilitating future adaptations.
+- **Information Retrieval (RAG):** Agents designed for answering questions access a knowledge base, their long-term memory, often implemented within Retrieval Augmented Generation (RAG).
+- **Autonomous Systems:** Robots or self-driving cars require memory for maps, routes, object locations, and learned behaviors. This involves short-term memory for immediate surroundings and long-term memory for general environmental knowledge.
+
+### Implementation Summary
+
+  Three Use Cases Demonstrating Different Memory Types:
+
+  1. **Personal AI Assistant (ConversationBufferMemory + Semantic Memory)**
+
+  - Short-term: Uses ConversationBufferMemory for automated conversation tracking
+  - Long-term (Semantic): Stores user facts/preferences (meeting times, contacts, dietary restrictions, etc.)
+  - Use case: Helps schedule meetings while remembering user's personal information and preferences
+  - Demo: Successfully scheduled a meeting with John at user's preferred time, recommended their favorite restaurant, and recalled dietary restrictions
+
+  2. **Customer Support Agent (ChatMessageHistory + Episodic + Procedural Memory)**
+
+  - Short-term: Uses ChatMessageHistory for manual conversation management
+  - Long-term (Episodic): Remembers past support tickets and their resolutions
+  - Long-term (Procedural): Applies company policies and troubleshooting procedures
+  - Use case: Handles customer issues by learning from past tickets and following established protocols
+  - Demo: Addressed WiFi connectivity issue by referencing past similar ticket and applying troubleshooting procedure
+
+  3. **Adaptive Learning Tutor (All Memory Types Combined)**
+
+  - Short-term: ConversationBufferMemory for current lesson context
+  - Long-term (Semantic): Mathematical concepts knowledge base
+  - Long-term (Episodic): Student's learning history, past mistakes, mastery levels
+  - Long-term (Procedural): Teaching strategies (scaffolding, feedback, assessment rules)
+  - Use case: Provides personalized math tutoring adapted to student's performance history
+  - Demo: Helped with order of operations problem, adapting difficulty based on student's 50% mastery level from previous session
+
+#### Files Created:
+
+  1. config.py - Comprehensive configuration with:
+    - Different temperature settings for each agent type
+    - Rich default data for all memory types
+    - System prompts for each use case
+  2. run.py - Full implementation with:
+    - Three complete examples
+    - Memory retrieval and usage demonstrations
+    - Model comparison function
+    - CLI support for running individual or all examples
+  3. __init__.py - Public API exports
+
+### Memory Management Classes Not in Core LangChain
+
+  The memory management pattern required two key classes that are not in the base langchain-core package:
+
+  1. **ConversationBufferMemory**
+
+  - Location: langchain_classic.memory
+  - Purpose: Automated short-term memory management for chains
+  - Used in: Examples 1 (Personal Assistant) and 3 (Learning Tutor)
+  - What it does: Automatically stores conversation history in a buffer and provides it to the LLM via a memory key
+```python
+  from langchain_classic.memory import ConversationBufferMemory
+
+  memory = ConversationBufferMemory(
+      memory_key="chat_history",
+      return_messages=True,
+      output_key="output"
+  )
+```
+  2. **ChatMessageHistory (as InMemoryChatMessageHistory)**
+
+  - Location: langchain_community.chat_message_histories
+  - Purpose: Manual short-term memory management
+  - Used in: Example 2 (Customer Support Agent)
+  - What it does: Provides manual control over message storage - you explicitly add/retrieve messages
+```python
+  from langchain_community.chat_message_histories import ChatMessageHistory
+
+  chat_history = ChatMessageHistory()
+  chat_history.add_user_message("Hello")
+  chat_history.add_message(ai_response)
+```
+  Why These Aren't in langchain-core
+
+  The base langchain-core package is intentionally minimal and contains only:
+  - Core abstractions (prompts, messages, output parsers)
+  - Base interfaces
+  - Runnables and LCEL
+
+  Memory management classes are considered "higher-level" features and were moved to:
+  - langchain-classic - for legacy/traditional memory implementations
+  - langchain-community - for community-maintained utilities including chat message histories
+
+  What langchain-community Installed
+
+  When we *ran uv add langchain-community*, it installed 19 packages including:
+
+  langchain-classic==1.0.1        # Contains ConversationBufferMemory
+  langchain-community==0.4.1       # Contains ChatMessageHistory
+  sqlalchemy==2.0.45              # Dependency for database-backed memories
+  dataclasses-json==0.6.7         # For serialization
+  numpy==2.4.0                    # Various dependencies
+
+#### Summary
+
+  langchain-community was required specifically for:
+  - ✅ ConversationBufferMemory (via langchain-classic dependency)
+  - ✅ ChatMessageHistory (directly from langchain-community)
+
+---
+
+###  Why I Used Simple Lists/Dicts
+
+  1. Simplicity for Demonstration
+
+  - Plain Python data structures are immediately understandable
+  - No async/await complexity to explain
+  - Direct, synchronous access to memories
+  - Easier to show "what's in memory" with simple print statements
+
+  2. Focus on Memory Types vs. Storage Mechanism
+
+  - Main goal was demonstrating different memory types (semantic, episodic, procedural)
+  - Wanted to show how memories are retrieved and used, not storage internals
+  - Kept the code focused on the pattern rather than storage implementation
+
+  3. Configuration-Based Approach
+
+  - Memories defined as default values in config.py
+  - Easy to customize for different examples
+  - No initialization/setup code needed
+
+###  Why InMemoryStore Would Be Better
+
+  You're correct that a production-like implementation should use InMemoryStore:
+
+1.  Proper Abstraction
+```python
+  from langgraph.store.memory import InMemoryStore
+
+  # Separate namespaces for different memory types
+  semantic_store = InMemoryStore()
+  episodic_store = InMemoryStore()
+  procedural_store = InMemoryStore()
+
+  # Store memories as JSON documents with IDs
+  await semantic_store.put(("user_facts", "meeting_time"), {
+      "key": "preferred_meeting_time",
+      "value": "10 AM on weekdays"
+  })
+```
+2.  Search Capabilities
+```python
+  # Search for relevant memories
+  wifi_tickets = await episodic_store.search(
+      query="WiFi connectivity issues"
+  )
+```
+3,  Namespace Organization
+
+  - Separate stores for different users/sessions
+  - Better encapsulation
+  - Easier to extend to persistent storage later
+
+4.  More Realistic
+
+  - Mirrors production patterns
+  - Better demonstrates LangGraph's memory capabilities
+  - Scalable approach
+
+  The Honest Answer
+
+  I took a shortcut for simplicity - I wanted to focus on demonstrating the concept of different memory types (semantic vs. episodic vs. procedural) without adding the complexity of:
+  - Async/await operations
+  - Store initialization and management
+  - Document IDs and namespacing
+  - Search queries
+
+  But you're right that this trades off realism for simplicity. For a complete demonstration of the Memory Management pattern in a LangChain/LangGraph context, InMemoryStore would be the more appropriate choice.
+
+---
+
+### Use Case 4: Personal Finance Advisor (Production-Style with InMemoryStore)
+
+  Key Features Implemented:
+
+  1. **InMemoryStore Integration**
+
+  - Namespace Organization: Used tuple-based namespaces for organizing different memory types:
+    - ("advisor", "semantic") - Financial knowledge base
+    - ("advisor", "episodic") - Client's financial history
+    - ("advisor", "procedural") - Financial strategies and protocols
+
+  2. **Async Operations Demonstrated**
+
+  - await memory_store.aput() - Store memories as JSON documents
+  - await memory_store.aget() - Retrieve specific memory by key
+  - await memory_store.asearch() - Search memories with filters and limits
+
+  3. **Production-Like Memory Management**
+```python
+  # Store semantic memory
+  await memory_store.aput(
+      namespace=("advisor", "semantic"),
+      key="tax_401k",
+      value={"concept": "tax_401k", "knowledge": "401(k) contributions are pre-tax..."}
+  )
+
+  # Retrieve specific memory
+  tax_401k = await memory_store.aget(namespace=("advisor", "semantic"), key="tax_401k")
+
+  # Search all memories in namespace
+  episodic_items = await memory_store.asearch(
+      ("advisor", "episodic"),  # namespace_prefix (positional-only)
+      limit=100
+  )
+```
+####  Comparison: Use Case 3 vs Use Case 4
+
+  | Aspect               | Use Case 3 (Tutor)           | Use Case 4 (Finance Advisor)             |
+  |:---------------------|:-----------------------------|:-----------------------------------------|
+  | Short-term Memory    | ConversationBufferMemory     | ConversationBufferMemory                 |
+  | Long-term Storage    | Simple Lists/Dicts in config | InMemoryStore with namespaces            |
+  | Memory Access        | Direct dict/list indexing    | Async aget(), asearch() methods          |
+  | Memory Organization  | Flat data structures         | Hierarchical namespaces                  |
+  | Scalability          | Limited, in-memory only      | Better, can migrate to persistent stores |
+  | Production Readiness | Demo/prototype level         | Production-like patterns                 |
+  | Complexity           | Lower (synchronous)          | Higher (async/await)                     |
+
+  What You Learned About LangGraph's InMemoryStore:
+
+  1. Async API: All store operations use async methods (aput, aget, asearch)
+  2. Namespace Organization: Hierarchical tuple-based namespacing for memory categories
+  3. Document Storage: Memories stored as JSON documents with keys and values
+  4. Search Capabilities: asearch() with namespace_prefix, filters, and limits
+  5. Positional Parameters: Some parameters like namespace_prefix are positional-only
+---
+
+### Google ADK
+
+ADK simplifies context management through three core concepts and their associated services.
+- **Session:** An individual chat thread that logs messages and actions (Events) for that specific interaction, also storing temporary data (State) relevant to that conversation. 
+- **State (session.state):** Data stored within a Session, containing information relevant only to the current, active chat thread. 
+- **Memory:** A searchable repository of information sourced from various past chats or external sources, serving as a resource for data retrieval beyond the immediate conversation.
+
+Both the SessionService and MemoryService offer various configuration options, allowing users to choose storage methods based on application needs:
+1. InMemorySessionService
+2. DatabaseSessionService
+3. VertexAISessionService
+
+
+
+
+ 
+ 
 
 
 

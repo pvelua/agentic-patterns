@@ -67,3 +67,62 @@ Usage Examples
   uv run python -c "from agentic_patterns.patterns.tool_use_05 import run; run('gpt-4o', ['What is quantum computing?'])"
 ```
   The implementation demonstrates sophisticated function calling where the LLM not only selects the right tool but also formulates comprehensive answers by synthesizing the tool results with its own knowledge!
+
+## Pattern 6 - Planning
+
+Usage Examples
+```bash
+  # Run with default task (RESTful API guide)
+  uv run src/agentic_patterns/patterns/planning_06/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/planning_06/run.py claude-sonnet-4-5-20250929
+
+  # Programmatic usage
+  uv run python -c "
+  from agentic_patterns.patterns.planning_06 import run
+  task = 'Design a microservices architecture for an e-commerce platform'
+  run('gpt-4o', task)
+  "
+```
+
+## Pattern 8 - Memory. Management
+
+Usage Examples:
+```bash
+  # Run all examples
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini all
+
+  # Run specific example
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini assistant
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini support
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini tutor
+
+  # Compare models
+  uv run python -c "from agentic_patterns.patterns.memory_mgmt_08 import compare_models; compare_models(example='assistant')"
+
+  # Run finance advisor example
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini advisor
+
+  # Programmatic usage
+  uv run python -c "
+  import asyncio
+  from agentic_patterns.patterns.memory_mgmt_08 import run_finance_advisor
+
+  result = asyncio.run(run_finance_advisor(
+      model_name='gpt-4o-mini',
+      client_question='Should I max out my 401(k) or open a Roth IRA?'
+  ))
+  print(result)
+  "
+
+  # Compare models on advisor example
+  uv run python -c "
+  from agentic_patterns.patterns.memory_mgmt_08 import compare_models
+  compare_models(example='advisor')
+  "
+```
+
+---
+
+## Pattern 9 - 
