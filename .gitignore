@@ -27,6 +27,7 @@ pythonenv*
 .env.production.local
 .env.*.local
 experiments/
+internal_docs/
 
 # IDE and Editor
 .vscode/

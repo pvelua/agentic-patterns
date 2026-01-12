@@ -125,4 +125,19 @@ Usage Examples:
 
 ---
 
-## Pattern 9 - 
+## Pattern 9 - Learn and Adapt
+
+Usage Examples:
+```bash
+  # Run with default model (5 iterations)
+  uv run src/agentic_patterns/patterns/learn_adapt_09/run.py gpt-4o-mini
+
+  # Compare multiple models
+  uv run src/agentic_patterns/patterns/learn_adapt_09/run.py compare
+
+  # Programmatic usage
+  from agentic_patterns.patterns.learn_adapt_09 import run
+  result = run(model_name='gpt-4o', max_iterations=5)
+```
+
+---

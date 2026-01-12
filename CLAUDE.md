@@ -126,6 +126,201 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
   ```
 - **Benefits**: Leverages different model strengths (e.g., GPT for generation, Claude for critical analysis)
 
+**Memory Management Pattern (memory_mgmt_08)**: Demonstrates short-term and long-term memory with multiple implementation approaches
+
+- **Dependencies**: Requires `langchain-community` package for memory classes
+  ```bash
+  uv add langchain-community
+  ```
+- **Short-term Memory**:
+  - `ConversationBufferMemory` from `langchain_classic.memory` (automated)
+  - `ChatMessageHistory` from `langchain_community.chat_message_histories` (manual)
+- **Long-term Memory Types**:
+  - **Semantic Memory**: Facts and knowledge (e.g., user preferences, domain knowledge)
+  - **Episodic Memory**: Past experiences and events (e.g., conversation history, past tickets)
+  - **Procedural Memory**: Rules and strategies (e.g., policies, protocols)
+- **Two Implementation Approaches**:
+  1. **Simple (Examples 1-3)**: Lists/Dicts in config for demonstration
+  2. **Production-style (Example 4)**: LangGraph's `InMemoryStore` with async operations
+- **InMemoryStore Usage** (Example 4 - Finance Advisor):
+  ```python
+  from langgraph.store.memory import InMemoryStore
+
+  # Create store with namespaces
+  memory_store = InMemoryStore()
+
+  # Store memories (async)
+  await memory_store.aput(
+      namespace=("advisor", "semantic"),
+      key="tax_401k",
+      value={"concept": "tax_401k", "knowledge": "..."}
+  )
+
+  # Retrieve specific memory (async)
+  memory = await memory_store.aget(namespace=("advisor", "semantic"), key="tax_401k")
+
+  # Search all memories in namespace (async)
+  results = await memory_store.asearch(
+      ("advisor", "episodic"),  # namespace_prefix (positional-only)
+      limit=100
+  )
+  ```
+- **Async Patterns**: Use `asyncio.run()` to execute async functions from main block
+  ```python
+  if example_name == "advisor":
+      result = asyncio.run(run_finance_advisor(model_name=model_name, config=config))
+  ```
+- **Key Features**:
+  - Namespace organization for different memory types
+  - Async operations for scalable memory access
+  - Document-based storage (JSON values)
+  - Search capabilities with filters and limits
+- **Usage Examples**:
+  ```bash
+  # Run all examples (uses simple Lists/Dicts approach)
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini all
+
+  # Run specific example with InMemoryStore
+  uv run src/agentic_patterns/patterns/memory_mgmt_08/run.py gpt-4o-mini advisor
+
+  # Programmatic usage (async)
+  uv run python -c "
+  import asyncio
+  from agentic_patterns.patterns.memory_mgmt_08 import run_finance_advisor
+  result = asyncio.run(run_finance_advisor(model_name='gpt-4o-mini'))
+  "
+  ```
+- **Benefits**: Shows progression from simple demo patterns to production-ready memory management
+
+**Learn and Adapt Pattern (learn_adapt_09)**: Demonstrates agent self-improvement through iterative code modification
+
+- **Use Case**: Data Processor Agent that improves its own implementation through iterative cycles
+  - Starts with basic code that fails benchmark tests
+  - Analyzes test failures and performance metrics
+  - Uses LLM to generate improved versions
+  - Selects best version based on weighted performance score
+  - Continues until performance threshold reached or max iterations
+
+- **Architecture Components**:
+  ```python
+  # Core classes for self-improvement
+  class AgentVersion:
+      """Stores code, test results, metrics, and score for each iteration"""
+      version_id: int
+      code: str
+      test_results: Dict[str, Any]
+      performance_metrics: Dict[str, float]
+      overall_score: float
+
+  class BenchmarkSuite:
+      """Runs 4 benchmark tests and measures performance"""
+      - test_numeric_processing: Compute statistics from numeric lists
+      - test_edge_cases: Handle empty inputs, None values
+      - test_string_operations: Word frequency counting
+      - test_performance: Process large datasets efficiently
+
+  class VersionArchive:
+      """Manages version history and selects best performer"""
+      - Stores all versions from all iterations
+      - Calculates scores using weighted formula
+      - Provides version history summary for LLM context
+
+  class AdaptationEngine:
+      """Uses LLM to analyze and improve code"""
+      - Formats test results and failures for LLM
+      - Provides version history as context
+      - Extracts Python code from LLM response
+  ```
+
+- **Performance Scoring**: Weighted formula balancing three factors
+  ```python
+  score = (
+      0.5 * success_rate +           # Test success rate (0-1)
+      0.3 * (1 - normalized_time) +  # Execution speed (lower is better)
+      0.2 * (1 - normalized_complexity)  # Code complexity (lines, lower is better)
+  )
+  ```
+
+- **Iterative Improvement Cycle**:
+  1. Execute current code on benchmark tests
+  2. Calculate performance metrics (success rate, execution time, complexity)
+  3. Calculate weighted overall score
+  4. Store version in archive
+  5. If threshold reached, stop; otherwise continue
+  6. Generate improved version using LLM with:
+     - Current code and test results
+     - Failed test details
+     - Version history summary
+  7. Repeat from step 1 with improved code
+
+- **Code Execution Pattern**: Safe code execution with isolated namespace
+  ```python
+  # Execute agent code in isolated namespace
+  namespace = {}
+  exec(code, namespace)
+  process_data = namespace['process_data']
+
+  # Run tests and measure execution time
+  start_time = time.time()
+  result = process_data(test_input)
+  execution_time = time.time() - start_time
+  ```
+
+- **LLM Prompting Strategy**:
+  - System prompt establishes LLM as code improvement expert
+  - Provides current code, test results, and failure details
+  - Includes version history to avoid repeating mistakes
+  - Requests ONLY code output (no explanations)
+  - Extracts code from markdown code blocks using regex
+
+- **Usage Examples**:
+  ```bash
+  # Run with default model (gpt-4o) and 5 iterations
+  uv run src/agentic_patterns/patterns/learn_adapt_09/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/learn_adapt_09/run.py gpt-4o-mini
+
+  # Compare multiple models
+  uv run src/agentic_patterns/patterns/learn_adapt_09/run.py compare
+
+  # Programmatic usage
+  from agentic_patterns.patterns.learn_adapt_09 import run
+  result = run(model_name='gpt-4o-mini', max_iterations=5)
+  ```
+
+- **Expected Results**: Progressive improvement trajectory
+  - Iteration 0: ~0% success rate (basic implementation)
+  - Iteration 1-2: ~67-83% success rate (fixes main issues)
+  - Iteration 3-4: ~100% success rate (handles all edge cases)
+  - Best version selected based on score (may not be final iteration)
+
+- **Configuration Options**:
+  ```python
+  config = LearnAdaptConfig()
+  config.max_iterations = 5              # Limit iteration count
+  config.performance_threshold = 0.95    # Stop when 95% success rate
+  config.weight_success = 0.5            # Success rate importance
+  config.weight_time = 0.3               # Speed importance
+  config.weight_complexity = 0.2         # Simplicity importance
+  config.temperature = 0.3               # LLM creativity for code gen
+  ```
+
+- **Key Implementation Details**:
+  - Uses `exec()` to dynamically execute generated code
+  - Measures execution time with `time.time()` before/after
+  - Calculates complexity as non-empty, non-comment lines
+  - Handles code extraction from LLM responses (with/without markdown)
+  - Provides detailed failure information to guide improvements
+  - Tracks all versions to show improvement trajectory
+
+- **Benefits**:
+  - Demonstrates meta-learning (learning to improve oneself)
+  - Shows how to safely execute and test dynamic code
+  - Illustrates scoring multiple objectives (accuracy, speed, complexity)
+  - Provides framework for agent self-optimization
+  - Real-world applicable to ML model tuning, prompt engineering, hyperparameter search
+
 ### LangChain Patterns
 
 The codebase uses LangChain Expression Language (LCEL) for composing chains:
@@ -144,9 +339,14 @@ full_chain = (
 ```
 
 Key LangChain imports commonly used:
-- `langchain_core.prompts.ChatPromptTemplate`
+- `langchain_core.prompts.ChatPromptTemplate`, `MessagesPlaceholder`
 - `langchain_core.output_parsers.StrOutputParser`
+- `langchain_core.messages.SystemMessage`, `HumanMessage`, `AIMessage`
 - Model-specific: `langchain_openai.ChatOpenAI`, `langchain_anthropic.ChatAnthropic`, `langchain_google_genai.ChatGoogleGenerativeAI`
+- Memory (requires langchain-community):
+  - `langchain_classic.memory.ConversationBufferMemory`
+  - `langchain_community.chat_message_histories.ChatMessageHistory`
+- LangGraph: `langgraph.graph.StateGraph`, `langgraph.store.memory.InMemoryStore`
 
 ### Results and Logging
 
@@ -189,3 +389,18 @@ When implementing a new pattern:
    - Multiple get_*_kwargs() methods (get_creator_kwargs(), get_critic_kwargs())
    - Function signatures accepting multiple model parameters
    - Enhanced logging showing which model is used for which role
+10. For patterns using async operations (e.g., InMemoryStore):
+    - Mark functions as `async def` and use `await` for async calls
+    - Use `asyncio.run()` in main block to execute async functions
+    - Import `asyncio` at the top of the file
+    - Update compare_models() to handle async functions with `asyncio.run()`
+    - Example:
+      ```python
+      async def run_example(model_name: str = "gpt-4o"):
+          memory_store = InMemoryStore()
+          await memory_store.aput(namespace=("ns",), key="k", value={"data": "..."})
+          # ... rest of async code
+
+      if __name__ == "__main__":
+          result = asyncio.run(run_example(model_name=model_name))
+      ```
