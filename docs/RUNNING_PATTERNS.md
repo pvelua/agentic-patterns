@@ -141,3 +141,46 @@ Usage Examples:
 ```
 
 ---
+
+## Pattern 10 - Goal Setting and Monitoring
+
+  Usage Examples
+```bash
+  # Run with defaults (api_client goal, gpt-4o + claude-sonnet-4-5-20250929)
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py
+
+  # Run specific goal
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py data_validator
+
+  # Specify both models
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py task_scheduler gpt-4o-mini gpt-4o-mini
+
+  # Compare model pairs
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py compare api_client
+```
+ Summary: How Model Selection Works
+
+  1. Default Configuration (config.py:12-17):
+  default_developer_model: str = "gpt-4o"              # OpenAI
+  default_manager_model: str = "claude-sonnet-4-5-20250929"  # Anthropic
+
+  2. CLI Usage:
+```bash
+  # Uses DEFAULTS (gpt-4o + claude-sonnet-4-5-20250929)
+  uv run .../run.py api_client
+
+  # Specify BOTH models explicitly
+  uv run .../run.py api_client gpt-4o-mini claude-sonnet-4-5-20250929
+
+  # What I tested earlier (both same for speed)
+  uv run .../run.py api_client gpt-4o-mini gpt-4o-mini
+```
+  3. Separate LLM Instances (run.py):
+```python
+  developer_llm = ModelFactory.create(developer_model, **config.get_developer_kwargs())
+  manager_llm = ModelFactory.create(manager_model, **config.get_manager_kwargs())
+```
+  4. Different Temperatures:
+  - Developer: 0.2 (more deterministic for code generation)
+  - Manager: 0.4 (more analytical for reviews)
+---

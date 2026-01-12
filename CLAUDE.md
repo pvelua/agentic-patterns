@@ -321,6 +321,136 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
   - Provides framework for agent self-optimization
   - Real-world applicable to ML model tuning, prompt engineering, hyperparameter search
 
+**Goal Setting and Monitoring Pattern (set_goal_monitor_10)**: Two-agent collaborative development with iterative reviews
+
+- **Architecture**: Two specialized agents with different LLM models working together
+  - **Developer Agent**: Creates implementation plans and generates Python code
+  - **Manager Agent**: Monitors progress, reviews code quality, and provides feedback
+  - **Iterative Cycle**: Developer improves based on manager's detailed reviews
+
+- **Agent Roles and Responsibilities**:
+  ```python
+  # Developer Agent
+  - Analyzes user requirements
+  - Creates detailed implementation plan
+  - Writes production-ready Python code
+  - Receives manager feedback
+  - Improves code iteratively
+
+  # Manager Agent
+  - Reviews code against requirements
+  - Evaluates code quality and best practices
+  - Assesses error handling and edge cases
+  - Grades documentation quality
+  - Provides actionable feedback
+  ```
+
+- **Grading System**: Weighted scoring across four criteria (0-100 scale)
+  ```python
+  Grade = (
+      40% * Requirements Coverage +  # All requirements met
+      30% * Code Quality +            # Structure, readability, PEP 8
+      15% * Error Handling +          # Robustness, edge cases
+      15% * Documentation             # Docstrings, clarity
+  )
+  ```
+
+- **Sample User Goals** (3 pre-configured scenarios):
+  1. **REST API Client**: HTTP client with retry logic, rate limiting, error handling
+  2. **Data Validator**: Validation library with custom rules and nested object support
+  3. **Task Scheduler**: Priority-based scheduling with cron-like syntax and dependencies
+
+- **Iterative Improvement Cycle**:
+  1. Developer creates implementation plan (iteration 0)
+  2. Developer generates code based on plan
+  3. Manager reviews code and assigns grade
+  4. If grade ≥ passing threshold (85/100), stop
+  5. Manager provides detailed feedback on issues
+  6. Developer improves code addressing all feedback
+  7. Repeat steps 3-6 up to max iterations (default 4)
+
+- **Review Format**: Structured feedback for systematic improvement
+  ```
+  GRADE: <score>/100
+
+  REQUIREMENTS COVERAGE (<score>/40):
+  - Requirement 1: Met/Partially Met/Not Met - explanation
+  - Requirement 2: Met/Partially Met/Not Met - explanation
+  ...
+
+  CODE QUALITY (<score>/30):
+  <Assessment of structure, readability, best practices>
+
+  ERROR HANDLING (<score>/15):
+  <Assessment of robustness and edge cases>
+
+  DOCUMENTATION (<score>/15):
+  <Assessment of docstrings and clarity>
+
+  OVERALL ASSESSMENT:
+  <Summary of strengths and weaknesses>
+
+  FEEDBACK FOR IMPROVEMENT:
+  1. <Specific actionable item>
+  2. <Specific actionable item>
+  ...
+  ```
+
+- **Configuration Options**:
+  ```python
+  config = GoalMonitorConfig()
+  config.default_developer_model = "gpt-4o"
+  config.default_manager_model = "claude-sonnet-4-5-20250929"
+  config.developer_temperature = 0.2   # Deterministic code gen
+  config.manager_temperature = 0.4     # Analytical review
+  config.max_iterations = 4
+  config.passing_grade = 85.0          # Stop when reached
+  ```
+
+- **Usage Examples**:
+  ```bash
+  # Run with default models and api_client goal
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py
+
+  # Run specific goal with default models
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py data_validator
+
+  # Specify both developer and manager models
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py api_client gpt-4o claude-sonnet-4-5-20250929
+
+  # Compare different model pairs
+  uv run src/agentic_patterns/patterns/set_goal_monitor_10/run.py compare api_client
+
+  # Programmatic usage
+  from agentic_patterns.patterns.set_goal_monitor_10 import run
+  result = run(
+      goal_name="task_scheduler",
+      developer_model="gpt-4o",
+      manager_model="claude-sonnet-4-5-20250929",
+      max_iterations=4
+  )
+  ```
+
+- **Expected Grade Progression**:
+  - Iteration 1: 70-85/100 (initial implementation, some missing features)
+  - Iteration 2: 80-90/100 (addresses major feedback, adds missing features)
+  - Iteration 3-4: 85-95/100 (polishes documentation, improves error handling)
+
+- **Key Implementation Details**:
+  - Developer uses planning prompt first, then implementation prompt
+  - Manager uses structured review prompt with explicit grading rubric
+  - Feedback extraction via regex from manager's review
+  - Code cleaning to handle markdown-wrapped responses
+  - Iteration tracking with full history (plan, code, review, grade)
+  - Best iteration selection based on highest grade
+
+- **Benefits**:
+  - Demonstrates multi-agent collaboration patterns
+  - Shows how different models can specialize (creator vs. reviewer)
+  - Illustrates structured feedback loops for improvement
+  - Provides framework for quality assurance workflows
+  - Real-world applicable to code review automation, automated testing, development workflows
+
 ### LangChain Patterns
 
 The codebase uses LangChain Expression Language (LCEL) for composing chains:
