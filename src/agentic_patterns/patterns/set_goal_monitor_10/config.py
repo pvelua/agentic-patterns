@@ -19,7 +19,7 @@ class GoalMonitorConfig:
     manager_max_tokens: int = 3000
 
     # Iteration settings
-    max_iterations: int = 4
+    max_iterations: int = 7
     passing_grade: float = 85.0  # Stop if we reach this grade (0-100 scale)
 
     # Grading weights (must sum to 100)
@@ -175,8 +175,14 @@ ASSESSMENT:
 FEEDBACK:
 {feedback}
 
-Based on this review, improve your code to address ALL issues and increase the grade.
-Focus especially on the low-scoring areas."""
+CRITICAL INSTRUCTIONS:
+1. START from the code provided above - DO NOT rewrite from scratch
+2. Address PRIORITY FEEDBACK items first - these are blocking issues
+3. PRESERVE all working functionality - do not break what already works
+4. Only add SECONDARY IMPROVEMENTS after priority items are complete
+5. Make incremental changes - avoid large rewrites that could introduce new bugs
+
+Your goal: Improve the grade by fixing issues, not by rewriting everything."""
 
     # Manager Agent System Prompt
     manager_system_prompt: str = """You are an expert project manager and code reviewer specializing in quality assurance.
@@ -261,10 +267,14 @@ DOCUMENTATION (<score>/15):
 OVERALL ASSESSMENT:
 <1-2 paragraphs summarizing strengths and weaknesses>
 
-FEEDBACK FOR IMPROVEMENT:
-1. <Specific actionable feedback>
-2. <Specific actionable feedback>
-3. <Specific actionable feedback>
+PRIORITY FEEDBACK (must address in next iteration):
+1. <Most critical issues - missing requirements, bugs, major quality issues>
+2. <Second most critical issue>
+...
+
+SECONDARY IMPROVEMENTS (address after priority items):
+1. <Nice-to-have improvements - documentation, refactoring, optimizations>
+2. <Other secondary improvements>
 ..."""
 
     def get_developer_kwargs(self) -> dict:

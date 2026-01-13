@@ -109,6 +109,7 @@ class DeveloperAgent:
         requirements: List[str],
         implementation_plan: str,
         feedback: Optional[str] = None,
+        current_code: Optional[str] = None,
         iteration: int = 1,
         grade: float = 0.0,
         verbose: bool = True
@@ -120,6 +121,7 @@ class DeveloperAgent:
             requirements: List of requirements
             implementation_plan: Previously created plan
             feedback: Optional feedback from manager (for improvements)
+            current_code: Current code to improve (if provided)
             iteration: Current iteration number
             grade: Previous grade (if feedback provided)
             verbose: Print progress
@@ -128,7 +130,10 @@ class DeveloperAgent:
             Python code as string
         """
         if verbose:
-            if feedback:
+            if feedback and current_code:
+                print(f"  Developer: Improving code based on feedback (previous grade: {grade:.1f})...")
+                print(f"  Developer: Starting from best version as baseline...")
+            elif feedback:
                 print(f"  Developer: Improving code based on feedback (previous grade: {grade:.1f})...")
             else:
                 print("  Developer: Implementing initial version...")
@@ -136,7 +141,21 @@ class DeveloperAgent:
         requirements_list = "\n".join([f"{i+1}. {req}" for i, req in enumerate(requirements)])
 
         # Prepare feedback section if provided
-        if feedback:
+        if feedback and current_code:
+            feedback_section = self.config.developer_improvement_section.format(
+                iteration=iteration - 1,
+                grade=grade,
+                assessment=self._extract_assessment(feedback),
+                feedback=self._extract_feedback_items(feedback)
+            )
+            feedback_section = f"""
+CURRENT CODE (to improve):
+```python
+{current_code}
+```
+
+{feedback_section}"""
+        elif feedback:
             feedback_section = self.config.developer_improvement_section.format(
                 iteration=iteration - 1,
                 grade=grade,
@@ -307,9 +326,12 @@ class GoalCycle:
             verbose=verbose
         )
 
-        # Iteration loop
+        # Iteration loop with best code tracking
         previous_review = None
         previous_grade = 0.0
+        best_code = None
+        best_grade = 0.0
+        best_iteration_num = 0
 
         for iteration in range(1, max_iterations + 1):
             if verbose:
@@ -318,11 +340,15 @@ class GoalCycle:
                 print(f"{'='*80}")
 
             # Developer implements or improves code
+            # Use best code as starting point if we have it and didn't improve last time
+            code_to_improve = best_code if (best_code and iteration > 1) else None
+
             code = self.developer.implement_code(
                 goal_title=goal_spec['title'],
                 requirements=goal_spec['requirements'],
                 implementation_plan=implementation_plan,
                 feedback=previous_review,
+                current_code=code_to_improve,
                 iteration=iteration,
                 grade=previous_grade,
                 verbose=verbose
@@ -338,7 +364,7 @@ class GoalCycle:
                 verbose=verbose
             )
 
-            # Store iteration
+            # Store iteration with actual code and grade
             iteration_record = CodeIteration(
                 iteration_num=iteration,
                 implementation_plan=implementation_plan if iteration == 1 else None,
@@ -348,21 +374,53 @@ class GoalCycle:
             )
             self.iterations.append(iteration_record)
 
-            if verbose:
-                print(f"\n  Grade: {grade:.1f}/100")
-                if grade >= self.config.passing_grade:
-                    print(f"  ✓ Passing grade reached! ({self.config.passing_grade})")
+            # Track best version for carry-forward
+            if iteration == 1:
+                # First iteration - establish baseline
+                best_code = code
+                best_grade = grade
+                best_iteration_num = iteration
+                if verbose:
+                    print(f"\n  Grade: {grade:.1f}/100 (baseline)")
+            elif grade > best_grade:
+                # Improvement found
+                best_code = code
+                best_grade = grade
+                best_iteration_num = iteration
+                if verbose:
+                    print(f"\n  Grade: {grade:.1f}/100")
+                    print(f"  ✓ Grade improved: {previous_grade:.1f} → {grade:.1f}")
+            else:
+                # No improvement - will use best code for next iteration
+                if verbose:
+                    print(f"\n  Grade: {grade:.1f}/100")
+                    if grade < best_grade:
+                        print(f"  ⚠ Grade dropped from best: {best_grade:.1f} (iteration {best_iteration_num})")
+                    else:
+                        print(f"  ⚠ Grade unchanged from best: {best_grade:.1f} (iteration {best_iteration_num})")
+                    print(f"  → Will reference best version for next iteration")
 
             # Check if we've reached passing grade
             if grade >= self.config.passing_grade:
                 if verbose:
+                    print(f"  ✓ Passing grade reached! ({self.config.passing_grade})")
                     print(f"\n{'='*80}")
                     print("SUCCESS: Passing grade achieved!")
                     print(f"{'='*80}\n")
                 break
 
             # Prepare for next iteration
-            previous_review = review
+            # Always provide current review as feedback, but mention best version context
+            if grade < best_grade:
+                # Add context about best version to the review
+                enhanced_review = f"""{review}
+
+NOTE: The best version so far is from iteration {best_iteration_num} with grade {best_grade:.1f}/100.
+Consider what worked well in that version while addressing the feedback above."""
+                previous_review = enhanced_review
+            else:
+                previous_review = review
+
             previous_grade = grade
 
         # Get best iteration (highest grade)
@@ -375,6 +433,15 @@ class GoalCycle:
             print(f"Total Iterations: {len(self.iterations)}")
             print(f"Best Grade: {best_iteration.grade:.1f}/100 (Iteration {best_iteration.iteration_num})")
             print(f"Final Grade: {self.iterations[-1].grade:.1f}/100")
+
+            # Show grade progression
+            print(f"\nGrade Progression:")
+            grades = [it.grade for it in self.iterations]
+            print(f"  {' → '.join([f'{g:.1f}' for g in grades])}")
+
+            # Calculate improvement
+            improvement = best_iteration.grade - self.iterations[0].grade
+            print(f"\nTotal Improvement: +{improvement:.1f} points")
             print()
 
         # Prepare results

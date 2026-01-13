@@ -403,7 +403,7 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
   config.default_manager_model = "claude-sonnet-4-5-20250929"
   config.developer_temperature = 0.2   # Deterministic code gen
   config.manager_temperature = 0.4     # Analytical review
-  config.max_iterations = 4
+  config.max_iterations = 7            # Increased from 4 (Jan 2026)
   config.passing_grade = 85.0          # Stop when reached
   ```
 
@@ -427,7 +427,7 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
       goal_name="task_scheduler",
       developer_model="gpt-4o",
       manager_model="claude-sonnet-4-5-20250929",
-      max_iterations=4
+      max_iterations=7  # Default is 7 (Jan 2026 update)
   )
   ```
 
@@ -436,12 +436,60 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
   - Iteration 2: 80-90/100 (addresses major feedback, adds missing features)
   - Iteration 3-4: 85-95/100 (polishes documentation, improves error handling)
 
+- **Enhanced Version (January 2026)**: Monotonic improvement features
+  - **Problem Solved**: Original version showed grade plateaus and occasional drops (e.g., 62→72→72→78 or 78→78→72)
+  - **Solution**: "Carry-Forward Best Code" + "Incremental Requirements" approach
+
+  **Key Enhancements**:
+  1. **Best Code Tracking** (run.py:313-401)
+     - Tracks best code version across all iterations
+     - Always provides best code as starting point for next iteration
+     - Prevents starting from failed attempts
+     - Shows clear feedback: `✓ Grade improved: 78.0 → 82.0` or `⚠ Grade dropped from best: 62.0`
+
+  2. **Prioritized Feedback** (config.py:264-271)
+     - Manager separates feedback into:
+       - **PRIORITY FEEDBACK**: Critical blocking issues (missing requirements, bugs)
+       - **SECONDARY IMPROVEMENTS**: Nice-to-have enhancements (docs, refactoring)
+     - Ensures developer addresses critical issues first
+
+  3. **Incremental Improvement Instructions** (config.py:177-183)
+     - Developer explicitly told to:
+       - Start from provided code (not rewrite from scratch)
+       - Preserve working functionality
+       - Make incremental changes
+       - Address priority items first before secondary improvements
+
+  4. **Increased Iteration Limit**
+     - Max iterations: 4 → 7 (allows more exploration and refinement)
+
+  5. **Enhanced Progress Tracking**
+     - Shows grade progression: `62.0 → 72.0 → 78.0 → 78.0 → 78.0 → 78.0 → 82.0`
+     - Displays total improvement: `+20.0 points`
+     - Identifies best iteration even if not final iteration
+
+  **Test Results** (January 2026):
+  | Goal | Initial | Final | Improvement | Progression |
+  |------|---------|-------|-------------|-------------|
+  | data_validator | 72 | 82 | +10 pts | 72→68→62→62→78→82→82 |
+  | api_client | 62 | 82 | +20 pts | 62→72→78→78→78→78→82 |
+  | task_scheduler | 42 | 62 | +20 pts | 42→52→52→58→58→62→62 |
+
+  **Benefits**:
+  - Prevents cascading failures when improvements backfire
+  - Enables exploration (developer can try risky approaches) with safety net
+  - Ensures monotonic or stable improvement (grades never significantly regress)
+  - Provides clearer feedback on what's working vs. what's not
+
 - **Key Implementation Details**:
   - Developer uses planning prompt first, then implementation prompt
+  - Developer receives best code version as starting point for improvements (Jan 2026)
   - Manager uses structured review prompt with explicit grading rubric
+  - Manager provides prioritized feedback (priority vs. secondary) (Jan 2026)
   - Feedback extraction via regex from manager's review
   - Code cleaning to handle markdown-wrapped responses
   - Iteration tracking with full history (plan, code, review, grade)
+  - Best code tracking across iterations prevents regression (Jan 2026)
   - Best iteration selection based on highest grade
 
 - **Benefits**:
