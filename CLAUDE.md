@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Experimental framework for testing various agentic design patterns using LangChain and LangGraph. The project implements multiple LLM agent patterns (chaining, routing, parallelization, reflection, tool use) and allows comparison across different models (OpenAI GPT, Anthropic Claude, Google Gemini).
+Experimental framework for testing various agentic design patterns using LangChain and LangGraph. The project implements 10 LLM agent patterns and allows comparison across different models (OpenAI GPT, Anthropic Claude, Google Gemini).
+
+**Implemented Patterns:**
+1. **Chaining (01)**: Sequential LLM calls with LCEL pipeline composition
+2. **Routing (02)**: Request classification and conditional delegation using RunnableBranch
+3. **Parallelization (03)**: Concurrent execution with RunnableParallel and result synthesis
+4. **Reflection (04)**: Dual-model creator/critic iterative improvement cycle
+5. **Tool Use (05)**: Function calling with domain-specific tools
+6. **Planning (06)**: Two-phase plan generation and step-by-step execution using LangGraph
+7. **Multi-Agent Collaboration (07)**: Three collaboration models (sequential, parallel+synthesis, debate) with LangGraph StateGraph
+8. **Memory Management (08)**: Short/long-term memory with InMemoryStore (semantic, episodic, procedural)
+9. **Learning & Adapting (09)**: Agent self-improvement through benchmark testing and iterative code generation
+10. **Goal Setting & Monitoring (10)**: Developer/Manager agents with graded reviews and incremental improvement
 
 ## Development Commands
 
@@ -92,6 +104,265 @@ Each pattern lives in `src/agentic_patterns/patterns/<pattern_name>/` and follow
 3. **__init__.py**: Export public API (run, compare_models functions)
 
 ### Pattern-Specific Variations
+
+**Routing Pattern (routing_02)**: Request classification and conditional execution with specialized handlers
+
+- **Use Case**: Coordinator agent that analyzes requests and delegates to specialized handlers
+  - Classifies requests into categories (booking, info, unclear)
+  - Routes to appropriate handler based on classification
+  - Uses RunnableBranch for conditional execution paths
+
+- **Architecture Components**:
+  ```python
+  # Handler functions for different request types
+  def booking_handler(request: str) -> str:
+      """Processes booking requests"""
+
+  def info_handler(request: str) -> str:
+      """Handles information retrieval"""
+
+  def unclear_handler(request: str) -> str:
+      """Handles unclear/ambiguous requests"""
+  ```
+
+- **Key LangChain Constructs**:
+  - `RunnableBranch`: Conditional routing based on classification
+  - Classification prompt extracts category from user request
+  - Routing logic: "booker" → booking_handler, "info" → info_handler, default → unclear_handler
+
+- **Usage Examples**:
+  ```bash
+  # Run with default model and request
+  uv run src/agentic_patterns/patterns/routing_02/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/routing_02/run.py gpt-4o
+
+  # Programmatic usage
+  from agentic_patterns.patterns.routing_02 import run
+  result = run(model_name='gpt-4', request='Book a flight to Paris')
+  ```
+
+- **Benefits**: Demonstrates conditional execution, request classification, and modular handler architecture
+
+**Parallelization Pattern (parallelization_03)**: Concurrent execution with result synthesis
+
+- **Use Case**: Execute multiple independent analysis tasks in parallel and synthesize results
+  - Runs 3 parallel chains: summary, questions, key terms
+  - Reduces total execution time through concurrency
+  - Synthesizes all results into comprehensive output
+
+- **Architecture Components**:
+  ```python
+  # Three parallel chains
+  parallel_chains = RunnableParallel(
+      summary=summary_chain,       # Summarize topic
+      questions=questions_chain,   # Generate questions
+      key_terms=key_terms_chain    # Extract key terms
+  )
+
+  # Synthesis chain combines parallel results
+  full_chain = parallel_chains | synthesis_chain
+  ```
+
+- **Async Execution**: Pattern uses async/await for true parallelization
+  ```python
+  async def run(model_name: str = "gpt-4", topic: str = None):
+      result = await full_chain.ainvoke({"topic": topic})
+      return result
+
+  # Main block
+  if __name__ == "__main__":
+      result = asyncio.run(run(model_name=model_name, topic=topic))
+  ```
+
+- **Usage Examples**:
+  ```bash
+  # Run with default model and topic
+  uv run src/agentic_patterns/patterns/parallelization_03/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/parallelization_03/run.py claude-sonnet-4-5-20250929
+
+  # Programmatic usage (async)
+  import asyncio
+  from agentic_patterns.patterns.parallelization_03 import run
+  result = asyncio.run(run(model_name='gpt-4o', topic='Quantum Computing'))
+  ```
+
+- **Benefits**: Shows how to parallelize independent operations, reduce latency, and synthesize multiple perspectives
+
+**Tool Use Pattern (tool_use_05)**: Function calling with domain-specific tools
+
+- **Use Case**: Agent with access to specialized search tools for different domains
+  - Defines 3 tools: tech_search, science_search, history_search
+  - Agent selects appropriate tool based on query content
+  - Executes tool and uses results to formulate answer
+
+- **Tool Definition Pattern**:
+  ```python
+  from langchain_core.tools import tool as langchain_tool
+
+  @langchain_tool
+  def tech_search(query: str) -> str:
+      """Search for technology-related information."""
+      return f"Tech search results for: {query}"
+
+  @langchain_tool
+  def science_search(query: str) -> str:
+      """Search for science-related information."""
+      return f"Science search results for: {query}"
+  ```
+
+- **Tool Binding and Execution**:
+  ```python
+  # Bind tools to model
+  tools = [tech_search, science_search, history_search]
+  llm_with_tools = llm.bind_tools(tools)
+
+  # Process tool calls from model response
+  if hasattr(ai_msg, 'tool_calls') and ai_msg.tool_calls:
+      for tool_call in ai_msg.tool_calls:
+          tool_result = execute_tool(tool_call)
+          messages.append(ToolMessage(content=tool_result, tool_call_id=tool_call["id"]))
+  ```
+
+- **Usage Examples**:
+  ```bash
+  # Run with default queries
+  uv run src/agentic_patterns/patterns/tool_use_05/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/tool_use_05/run.py gpt-4o
+
+  # Programmatic usage
+  from agentic_patterns.patterns.tool_use_05 import run
+  result = run(
+      model_name='claude-sonnet-4-5-20250929',
+      queries=['What is machine learning?', 'Who built the pyramids?']
+  )
+  ```
+
+- **Benefits**: Demonstrates function calling, tool selection logic, and multi-turn tool-using conversations
+
+**Planning Pattern (planning_06)**: Two-phase strategic planning with execution using LangGraph
+
+- **Use Case**: Break down complex tasks into detailed plans, then execute step-by-step
+  - Phase 1: Planner agent analyzes task and creates structured plan
+  - Phase 2: Executor agent follows plan steps sequentially
+  - Uses LangGraph StateGraph for workflow management
+
+- **Architecture Components**:
+  ```python
+  from langgraph.graph import StateGraph, END
+
+  class PlanningState(TypedDict):
+      task: str          # Original task
+      plan: str          # Generated plan
+      execution: str     # Execution result
+      messages: list     # Message history
+
+  # Build workflow graph
+  workflow = StateGraph(PlanningState)
+  workflow.add_node("planner", planner_agent)    # Creates plan
+  workflow.add_node("executor", executor_agent)  # Executes plan
+  workflow.add_edge("planner", "executor")       # Sequential flow
+  workflow.add_edge("executor", END)
+  ```
+
+- **Two-Agent System**:
+  - **Planner Agent**: Analyzes task, breaks into steps, creates detailed plan
+  - **Executor Agent**: Receives plan, executes each step, produces final result
+
+- **Usage Examples**:
+  ```bash
+  # Run with default task
+  uv run src/agentic_patterns/patterns/planning_06/run.py
+
+  # Run with specific model
+  uv run src/agentic_patterns/patterns/planning_06/run.py gpt-4o
+
+  # Programmatic usage
+  from agentic_patterns.patterns.planning_06 import run
+  result = run(
+      model_name='claude-sonnet-4-5-20250929',
+      task='Design a database schema for an e-commerce platform'
+  )
+  ```
+
+- **Benefits**: Shows strategic planning, step-by-step execution, and LangGraph workflow orchestration
+
+**Multi-Agent Collaboration Pattern (multi_agent_collab_07)**: Three collaboration models using LangGraph
+
+- **Use Case**: Demonstrates different ways multiple agents can work together
+  1. **Sequential Pipeline**: Research → Critic → Summarizer (paper analysis)
+  2. **Parallel + Synthesis**: Marketing + Content + Analyst → Coordinator (product launch)
+  3. **Multi-Perspective Debate**: Security + Performance + Quality → Synthesizer (code review)
+
+- **Example 1: Sequential Pipeline (Research Paper Analysis)**:
+  ```python
+  class ResearchAnalysisState(TypedDict):
+      paper_content: str
+      research_analysis: str     # Researcher output
+      critical_review: str       # Critic output
+      final_summary: str         # Summarizer output
+      messages: list
+
+  workflow = StateGraph(ResearchAnalysisState)
+  workflow.add_node("researcher", researcher_agent)
+  workflow.add_node("critic", critic_agent)
+  workflow.add_node("summarizer", summarizer_agent)
+  workflow.add_edge("researcher", "critic")
+  workflow.add_edge("critic", "summarizer")
+  workflow.add_edge("summarizer", END)
+  ```
+
+- **Example 2: Parallel + Synthesis (Product Launch Campaign)**:
+  ```python
+  # Three agents work in parallel
+  workflow.add_node("marketing", marketing_agent)
+  workflow.add_node("content", content_agent)
+  workflow.add_node("analyst", analyst_agent)
+
+  # All converge to coordinator
+  workflow.add_edge("marketing", "coordinator")
+  workflow.add_edge("content", "coordinator")
+  workflow.add_edge("analyst", "coordinator")
+  ```
+
+- **Example 3: Multi-Perspective Debate (Code Review)**:
+  ```python
+  # Three reviewers provide different perspectives
+  workflow.add_node("security_reviewer", security_agent)
+  workflow.add_node("performance_reviewer", performance_agent)
+  workflow.add_node("quality_reviewer", quality_agent)
+  workflow.add_node("synthesizer", synthesizer_agent)
+
+  # All reviews feed to synthesizer
+  workflow.add_edge("security_reviewer", "synthesizer")
+  workflow.add_edge("performance_reviewer", "synthesizer")
+  workflow.add_edge("quality_reviewer", "synthesizer")
+  ```
+
+- **Usage Examples**:
+  ```bash
+  # Run sequential pipeline (research paper analysis)
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py research
+
+  # Run parallel + synthesis (product launch)
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py campaign
+
+  # Run debate (code review)
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py code_review
+
+  # Run all examples
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py all
+
+  # Specify model
+  uv run src/agentic_patterns/patterns/multi_agent_collab_07/run.py research gpt-4o
+  ```
+
+- **Benefits**: Demonstrates multiple collaboration patterns, LangGraph StateGraph orchestration, and agent specialization strategies
 
 **Reflection Pattern (reflection_04)**: Supports dual-model approach with separate creator and critic roles
 
@@ -517,14 +788,23 @@ full_chain = (
 ```
 
 Key LangChain imports commonly used:
-- `langchain_core.prompts.ChatPromptTemplate`, `MessagesPlaceholder`
-- `langchain_core.output_parsers.StrOutputParser`
-- `langchain_core.messages.SystemMessage`, `HumanMessage`, `AIMessage`
-- Model-specific: `langchain_openai.ChatOpenAI`, `langchain_anthropic.ChatAnthropic`, `langchain_google_genai.ChatGoogleGenerativeAI`
-- Memory (requires langchain-community):
+- **Prompts & Messages**:
+  - `langchain_core.prompts.ChatPromptTemplate`, `MessagesPlaceholder`
+  - `langchain_core.messages.SystemMessage`, `HumanMessage`, `AIMessage`, `ToolMessage`
+- **Output Parsers**: `langchain_core.output_parsers.StrOutputParser`
+- **Runnables** (LCEL):
+  - `langchain_core.runnables.RunnablePassthrough` - Pass data through chains
+  - `langchain_core.runnables.RunnableBranch` - Conditional routing (routing_02)
+  - `langchain_core.runnables.RunnableParallel` - Parallel execution (parallelization_03)
+- **Tools**: `langchain_core.tools.tool` decorator for function definitions (tool_use_05)
+- **Model Classes**: `langchain_openai.ChatOpenAI`, `langchain_anthropic.ChatAnthropic`, `langchain_google_genai.ChatGoogleGenerativeAI`
+- **Memory** (requires langchain-community):
   - `langchain_classic.memory.ConversationBufferMemory`
   - `langchain_community.chat_message_histories.ChatMessageHistory`
-- LangGraph: `langgraph.graph.StateGraph`, `langgraph.store.memory.InMemoryStore`
+- **LangGraph** (workflow orchestration):
+  - `langgraph.graph.StateGraph` - State machine for agent workflows (planning_06, multi_agent_collab_07)
+  - `langgraph.graph.END` - Terminal node marker
+  - `langgraph.store.memory.InMemoryStore` - Production memory storage (memory_mgmt_08)
 
 ### Results and Logging
 
